@@ -6,6 +6,7 @@ import magic
 from netCDF4 import Dataset
 from decimal import Decimal
 from hashlib import sha256
+from heapq import nsmallest, nlargest
 
 
 class ExtractionFailed(Exception):
@@ -39,6 +40,7 @@ def extract_metadata(file_name, path, pass_fail=False):
                 "checksum": sha256(file_handle.read()).hexdigest()
             }
         }
+
         # checksum puts cursor at end of file - reset to beginning for metadata extraction
         file_handle.seek(0)
 
@@ -306,26 +308,10 @@ def add_row_to_aggregates(metadata, row, col_aliases, col_types):
 
             # add row data to existing aggregates
             else:
-                if value < metadata["columns"][col_alias]["min"][0]:
-                    metadata["columns"][col_alias]["min"][1:2] = metadata["columns"][col_alias]["min"][0:1]
-                    metadata["columns"][col_alias]["min"][0] = value
-                elif value < metadata["columns"][col_alias]["min"][1] \
-                        and value != metadata["columns"][col_alias]["min"][0]:
-                    metadata["columns"][col_alias]["min"][2] = metadata["columns"][col_alias]["min"][1]
-                    metadata["columns"][col_alias]["min"][1] = value
-                elif value < metadata["columns"][col_alias]["min"][2] \
-                        and value not in metadata["columns"][col_alias]["min"][:2]:
-                    metadata["columns"][col_alias]["min"][2] = value
-                if value > metadata["columns"][col_alias]["max"][0]:
-                    metadata["columns"][col_alias]["max"][1:2] = metadata["columns"][col_alias]["max"][0:1]
-                    metadata["columns"][col_alias]["max"][0] = value
-                elif value > metadata["columns"][col_alias]["max"][1] \
-                        and value != metadata["columns"][col_alias]["max"][0]:
-                    metadata["columns"][col_alias]["max"][2] = metadata["columns"][col_alias]["max"][1]
-                    metadata["columns"][col_alias]["max"][1] = value
-                elif value > metadata["columns"][col_alias]["max"][2] \
-                        and value not in metadata["columns"][col_alias]["max"][:2]:
-                    metadata["columns"][col_alias]["max"][2] = value
+                mins = metadata["columns"][col_alias]["min"] + [value]
+                maxes = metadata["columns"][col_alias]["max"] + [value]
+                metadata["columns"][col_alias]["min"] = nsmallest(3, mins)
+                metadata["columns"][col_alias]["max"] = nlargest(3, maxes)
                 metadata["columns"][col_alias]["total"] += value
 
         elif col_type == "str":
@@ -354,7 +340,7 @@ def add_final_aggregates(metadata, col_aliases, col_types, num_rows):
 
             metadata["columns"][col_alias]["avg"] = round(
                 metadata["columns"][col_alias]["total"] / num_rows,
-                max_precision([metadata["columns"][col_alias]["min"], metadata["columns"][col_alias]["max"]])
+                max_precision([metadata["columns"][col_alias]["min"][0], metadata["columns"][col_alias]["max"][0]])
             ) if len(metadata["columns"][col_alias]["min"]) > 0 else None
             metadata["columns"][col_alias].pop("total")
 

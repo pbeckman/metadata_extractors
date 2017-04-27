@@ -1,0 +1,34 @@
+{
+	"data": [
+		{
+			"path": "/path/to/",
+			"file": "file1",
+			"checksum": "asdf1234"
+		},
+		{
+                        "path": "/path/to/",
+                        "file": "file2",
+                        "checksum": "asdf1234"
+                },
+		{
+                        "path": "/path/to/",
+                        "file": "file3",
+                        "checksum": "asdf1234"
+                },
+		{
+                        "path": "/path/to/",
+                        "file": "single_file",
+                        "checksum": "a89f12tt"
+                },
+		{
+                        "path": "/path/to/",
+                        "file": "file1a",
+                        "checksum": "as26734"
+                },
+		{
+                        "path": "/path/to/different/pub/",
+                        "file": "file2a",
+                        "checksum": "as26734"
+                }
+	]
+}
