@@ -152,16 +152,24 @@ class NumpyDecoder(json.JSONEncoder):
 def extract_columnar_metadata(file_handle, pass_fail=False):
     """Get metadata from column-formatted file.
 
-        :param file_handle: (file) open file
-        :param pass_fail: (bool) whether to exit after ascertaining file class
-        :returns: (dict) ascertained metadata
-        :raises: (ExtractionFailed) if the file cannot be read as a columnar file"""
+            :param file_handle: (file) open file
+            :param pass_fail: (bool) whether to exit after ascertaining file class
+            :returns: (dict) ascertained metadata
+            :raises: (ExtractionFailed) if the file cannot be read as a columnar file"""
 
-    extension = file_handle.name.split('.', 1)[1] if '.' in file_handle.name else "no extension"
+    try:
+        return _extract_columnar_metadata(file_handle, ",", pass_fail=pass_fail)
+    except ExtractionFailed:
+        try:
+            return _extract_columnar_metadata(file_handle, "\t", pass_fail=pass_fail)
+        except ExtractionFailed:
+            return _extract_columnar_metadata(file_handle, " ", pass_fail=pass_fail)
+
+
+def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False):
 
     # choose csv.reader parameters based on file type - if not csv, use whitespace-delimited
-    # TODO: try multiple delimiters (\t)
-    reverse_reader = ReverseReader(file_handle, delimiter="," if extension in ["csv", "exc.csv"] else "whitespace")
+    reverse_reader = ReverseReader(file_handle, delimiter=delimiter)
 
     # base dictionary in which to store all the metadata
     metadata = {"columns": {}}
@@ -233,7 +241,7 @@ def extract_columnar_metadata(file_handle, pass_fail=False):
             if not pass_fail:
                 add_row_to_aggregates(metadata, row, col_aliases, col_types)
 
-        if pass_fail and num_rows > min_rows:
+        if pass_fail and num_rows >= min_rows:
             raise ExtractionPassed
 
     # extraction passed but there are too few rows
@@ -268,8 +276,7 @@ def extract_columnar_metadata(file_handle, pass_fail=False):
     if len(headers) > 0:
         metadata["headers"] = list(set(headers))
 
-    if not pass_fail:
-        add_final_aggregates(metadata, col_aliases, col_types, num_rows)
+    add_final_aggregates(metadata, col_aliases, col_types, num_rows)
 
     return metadata
 
@@ -308,8 +315,8 @@ def add_row_to_aggregates(metadata, row, col_aliases, col_types):
 
             # add row data to existing aggregates
             else:
-                mins = metadata["columns"][col_alias]["min"] + [value]
-                maxes = metadata["columns"][col_alias]["max"] + [value]
+                mins = list(set(metadata["columns"][col_alias]["min"] + [value]))
+                maxes = list(set(metadata["columns"][col_alias]["max"] + [value]))
                 metadata["columns"][col_alias]["min"] = nsmallest(3, mins)
                 metadata["columns"][col_alias]["max"] = nlargest(3, maxes)
                 metadata["columns"][col_alias]["total"] += value
@@ -340,7 +347,7 @@ def add_final_aggregates(metadata, col_aliases, col_types, num_rows):
 
             metadata["columns"][col_alias]["avg"] = round(
                 metadata["columns"][col_alias]["total"] / num_rows,
-                max_precision([metadata["columns"][col_alias]["min"][0], metadata["columns"][col_alias]["max"][0]])
+                max_precision(metadata["columns"][col_alias]["min"] + metadata["columns"][col_alias]["max"])
             ) if len(metadata["columns"][col_alias]["min"]) > 0 else None
             metadata["columns"][col_alias].pop("total")
 
@@ -357,7 +364,7 @@ class ReverseReader:
     """Reads column-formatted files in reverse as lists of fields.
 
         :param file_handle: (file) open file
-        :param delimiter: (string) ',' or 'whitespace' """
+        :param delimiter: (string) delimiting character """
 
     def __init__(self, file_handle, delimiter=","):
         self.fh = file_handle
@@ -367,10 +374,12 @@ class ReverseReader:
         self.prev_position = self.fh.tell()
 
     @staticmethod
-    def fields(line, delimiter):
+    def fields(line, delim):
         # if space-delimited, do not keep whitespace fields, otherwise do
-        return [field.strip() for field in re.split("," if delimiter == "," else "\\s", line)
-                if delimiter != "whitespace" or delimiter == "whitespace" and field.strip() != ""]
+        fields = [field.strip() for field in re.split(delim if delim != " " else "\\s", line)]
+        if delim in [" ", "\t", "\n"]:
+            fields = filter(lambda f: f != "", fields)
+        return fields
 
     def next(self):
         line = ''

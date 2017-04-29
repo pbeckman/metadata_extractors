@@ -12,14 +12,24 @@ def display_metadata(file_name, path, pass_fail=False):
 
 
 def test_metadata_extraction(pass_fail=False):
-    display_metadata("no_headers.csv", "test_files/", pass_fail=pass_fail)
-    # display_metadata("some_netcdf.nc", "test_files/", pass_fail=pass_fail)
-    # display_metadata("single_header.csv", "test_files/", pass_fail=pass_fail)
-    # display_metadata("readme.txt", "test_files/", pass_fail=pass_fail)
-    # display_metadata("multiple_headers.csv", "test_files/", pass_fail=pass_fail)
-    # display_metadata("single_header.txt", "test_files/", pass_fail=pass_fail)
-    # display_metadata("preamble.exc.csv", "test_files/", pass_fail=pass_fail)
-    # display_metadata("preamble.dat", "test_files/", pass_fail=pass_fail)
-    # display_metadata("preamble.c32", "test_files/", pass_fail=pass_fail)
+    for f in [
+        "no_headers.csv",
+        "some_netcdf.nc",
+        "single_header.csv",
+        "readme.txt",
+        "multiple_headers.csv",
+        "single_header.txt",
+        "preamble.exc.csv",
+        "preamble.dat",
+        "preamble.c32",
+        "structured.xml",
+        "test.pdf",
+        "test.zip",
+        "excel.xls",
+        "image.jpg"
+    ]:
+        display_metadata(f, "test_files/", pass_fail=pass_fail)
+        raw_input()
 
-test_metadata_extraction()
+
+test_metadata_extraction(pass_fail=True)
