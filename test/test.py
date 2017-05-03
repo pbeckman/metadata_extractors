@@ -1,5 +1,5 @@
 import json
-from metadata_util import extract_metadata
+from metadata_extractors.metadata_util import extract_metadata, extract_topic
 
 
 def display_metadata(file_name, path, pass_fail=False):
@@ -31,5 +31,7 @@ def test_metadata_extraction(pass_fail=False):
         display_metadata(f, "test_files/", pass_fail=pass_fail)
         raw_input()
 
+# test_metadata_extraction(pass_fail=False)
 
-test_metadata_extraction(pass_fail=True)
+with open("test_files/readme.txt", "r") as f:
+    print extract_topic(f)

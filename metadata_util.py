@@ -7,6 +7,9 @@ from netCDF4 import Dataset
 from decimal import Decimal
 from hashlib import sha256
 from heapq import nsmallest, nlargest
+from gensim import corpora
+from gensim.models.ldamodel import LdaModel
+from nltk.tokenize import RegexpTokenizer
 
 
 class ExtractionFailed(Exception):
@@ -54,7 +57,7 @@ def extract_metadata(file_name, path, pass_fail=False):
             except ExtractionFailed:
                 # not a netCDF file
                 pass
-        elif any([i in mime_type for i in ["text", "xml"]]):
+        elif any([i in mime_type for i in ["text", "csv", "xml"]]):
             try:
                 metadata.update(extract_columnar_metadata(file_handle, pass_fail=pass_fail))
             except ExtractionPassed:
@@ -179,7 +182,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False):
     # number of rows to skip at the end of the file before reading
     end_rows = 5
     # size of extracted free-text preamble in characters
-    preamble_size = 1000
+    preamble_size = 0
 
     headers = []
     col_types = []
@@ -339,6 +342,9 @@ def add_final_aggregates(metadata, col_aliases, col_types, num_rows):
     for i in range(0, len(col_aliases)):
         col_alias = col_aliases[i]
 
+        if metadata["columns"][col_alias] == {}:
+            metadata["columns"].pop(col_alias)
+
         if col_types[i] == "num":
             metadata["columns"][col_alias]["max"] = [val for val in metadata["columns"][col_alias]["max"]
                                                      if val is not None]
@@ -443,3 +449,15 @@ def frac_numeric(file_handle, sample_length=1000):
 
     return float(len(re.sub("[^0-9]", "", sample))) / len(sample)
 
+
+def extract_topic(file_handle, pass_fail=False):
+
+    tokenizer = RegexpTokenizer(r'[a-zA-Z]{3,}')
+
+    dictionary = corpora.Dictionary.load('climate_abstracts.dict')
+    model = LdaModel.load("climate_abstracts.lda")
+
+    doc = tokenizer.tokenize(file_handle.read())
+    doc_bow = dictionary.doc2bow(doc)
+
+    return model[doc_bow]
