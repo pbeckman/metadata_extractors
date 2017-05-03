@@ -40,19 +40,22 @@ def extract_metadata(file_name, path, pass_fail=False):
                 "extension": extension,
                 "mime_type": mime_type,
                 "size": os.path.getsize(path + file_name),
-                "checksum": sha256(file_handle.read()).hexdigest()
+                "checksum": sha256(file_handle.read()).hexdigest(),
+                "extractors": []
             }
         }
 
         # checksum puts cursor at end of file - reset to beginning for metadata extraction
         file_handle.seek(0)
 
-        text_frac_num = 0.1
+        text_frac_num = 0.2
 
         if extension == "nc":
             try:
                 metadata.update(extract_netcdf_metadata(file_handle, pass_fail=pass_fail))
+                metadata["system"]["extractors"].append("netcdf")
             except ExtractionPassed:
+                metadata["system"]["extractors"].append("netcdf")
                 pass
             except ExtractionFailed:
                 # not a netCDF file
@@ -60,14 +63,21 @@ def extract_metadata(file_name, path, pass_fail=False):
         elif any([i in mime_type for i in ["text", "csv", "xml"]]):
             try:
                 metadata.update(extract_columnar_metadata(file_handle, pass_fail=pass_fail))
+                metadata["system"]["extractors"].append("columnar")
             except ExtractionPassed:
+                metadata["system"]["extractors"].append("columnar")
                 pass
             except ExtractionFailed:
                 # not a columnar file
                 # check if this file is a usable abstract-like file
                 if frac_numeric(file_handle) < text_frac_num:
-                    # extract topic
-                    pass
+                    try:
+                        metadata.update(extract_topic(file_handle, pass_fail=pass_fail))
+                        metadata["system"]["extractors"].append("lda")
+                    except ExtractionPassed:
+                        metadata["system"]["extractors"].append("lda")
+                    except ExtractionFailed:
+                        pass
 
     return metadata
 
@@ -152,24 +162,25 @@ class NumpyDecoder(json.JSONEncoder):
             return super(NumpyDecoder, self).default(obj)
 
 
-def extract_columnar_metadata(file_handle, pass_fail=False):
+def extract_columnar_metadata(file_handle, pass_fail=False, collect_preamble=False):
     """Get metadata from column-formatted file.
 
             :param file_handle: (file) open file
             :param pass_fail: (bool) whether to exit after ascertaining file class
+            :param collect_preamble: (bool) whether to collect the free-text preamble at the start of the file
             :returns: (dict) ascertained metadata
             :raises: (ExtractionFailed) if the file cannot be read as a columnar file"""
 
     try:
-        return _extract_columnar_metadata(file_handle, ",", pass_fail=pass_fail)
+        return _extract_columnar_metadata(file_handle, ",", pass_fail=pass_fail, collect_preamble=collect_preamble)
     except ExtractionFailed:
         try:
-            return _extract_columnar_metadata(file_handle, "\t", pass_fail=pass_fail)
+            return _extract_columnar_metadata(file_handle, "\t", pass_fail=pass_fail, collect_preamble=collect_preamble)
         except ExtractionFailed:
-            return _extract_columnar_metadata(file_handle, " ", pass_fail=pass_fail)
+            return _extract_columnar_metadata(file_handle, " ", pass_fail=pass_fail, collect_preamble=collect_preamble)
 
 
-def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False):
+def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_preamble=False):
 
     # choose csv.reader parameters based on file type - if not csv, use whitespace-delimited
     reverse_reader = ReverseReader(file_handle, delimiter=delimiter)
@@ -182,7 +193,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False):
     # number of rows to skip at the end of the file before reading
     end_rows = 5
     # size of extracted free-text preamble in characters
-    preamble_size = 0
+    preamble_size = 1000
 
     headers = []
     col_types = []
@@ -257,7 +268,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False):
             add_row_to_aggregates(metadata, row, col_aliases, col_types)
 
     # extract free-text preamble, which may contain headers
-    if not fully_parsed:
+    if collect_preamble and not fully_parsed:
         # number of characters in file before last un-parse-able row
         file_handle.seek(reverse_reader.prev_position)
         remaining_chars = file_handle.tell() - 1
@@ -434,9 +445,45 @@ def is_number(field):
         return False
 
 
+def extract_topic(file_handle, pass_fail=False):
+    """Create free-text metadata JSON from file indicating topic
+    and some human-readable indication of its content.
+
+        :param file_handle: (str) file
+        :param pass_fail: (bool) whether to exit after ascertaining file class
+        :returns: (dict) metadata dictionary"""
+
+    tokenizer = RegexpTokenizer(r'[a-zA-Z]{3,}')
+    tag_remover = re.compile('<.+>')
+
+    doc = re.sub(tag_remover, '', file_handle.read())
+    doc = tokenizer.tokenize(doc)
+
+    if pass_fail:
+        if doc == []:
+            raise ExtractionFailed
+        else:
+            raise ExtractionPassed
+
+    dictionary = corpora.Dictionary.load('lda_model/climate_abstracts.dict')
+    model = LdaModel.load("lda_model/climate_abstracts.lda")
+
+    doc_bow = dictionary.doc2bow(doc)
+
+    topics = model[doc_bow]
+    max_topic = max(topics, key=lambda (i, p): p)[0]
+    topic_words = [str(w[0]) for w in LdaModel.show_topic(model, max_topic)]
+
+    metadata = {
+        "topics": topics,
+        "tags": topic_words
+    }
+
+    return metadata
+
+
 def frac_numeric(file_handle, sample_length=1000):
     """Determine the fraction of characters that are numeric in a sample of the file.
-
         :param file_handle: (file) open file object
         :param sample_length: (int) length in bytes of sample to be read from start of file
         :returns: (float) portion numeric characters"""
@@ -448,16 +495,3 @@ def frac_numeric(file_handle, sample_length=1000):
     sample = file_handle.read(sample_length)
 
     return float(len(re.sub("[^0-9]", "", sample))) / len(sample)
-
-
-def extract_topic(file_handle, pass_fail=False):
-
-    tokenizer = RegexpTokenizer(r'[a-zA-Z]{3,}')
-
-    dictionary = corpora.Dictionary.load('climate_abstracts.dict')
-    model = LdaModel.load("climate_abstracts.lda")
-
-    doc = tokenizer.tokenize(file_handle.read())
-    doc_bow = dictionary.doc2bow(doc)
-
-    return model[doc_bow]
