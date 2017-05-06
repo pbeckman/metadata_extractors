@@ -3,6 +3,7 @@ import numpy
 import os
 import re
 import magic
+import pickle as pkl
 from netCDF4 import Dataset
 from decimal import Decimal
 from hashlib import sha256
@@ -10,6 +11,16 @@ from heapq import nsmallest, nlargest
 from gensim import corpora
 from gensim.models.ldamodel import LdaModel
 from nltk.tokenize import RegexpTokenizer
+
+# load necessary LDA resources
+dictionary = corpora.Dictionary.load("../lda_model/climate_abstracts.dict")
+lda_model = LdaModel.load("../lda_model/climate_abstracts.lda")
+
+# load null inference model
+with open(os.path.abspath("../null_inference_model/ni_model.pkl")) as model_file:
+    ni_model = pkl.load(model_file)
+NULL_EPSILON = 1
+null_list = [None, -999, -9]
 
 
 class ExtractionFailed(Exception):
@@ -180,8 +191,8 @@ def extract_columnar_metadata(file_handle, pass_fail=False, collect_preamble=Fal
             return _extract_columnar_metadata(file_handle, " ", pass_fail=pass_fail, collect_preamble=collect_preamble)
 
 
-def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_preamble=False):
-
+def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_preamble=False,
+                               null_inference=True, nulls=None):
     # choose csv.reader parameters based on file type - if not csv, use whitespace-delimited
     reverse_reader = ReverseReader(file_handle, delimiter=delimiter)
 
@@ -230,7 +241,6 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
             # make column aliases so that we can create aggregates even for unlabelled columns
             col_aliases = ["__{}__".format(i) for i in range(0, row_length)]
             # type check the first row to decide which aggregates to use
-            # TODO: consider more comprehensive type checking (textual nulls in first row)
             col_types = ["num" if is_number(field) else "str" for field in row]
             is_first_row = False
 
@@ -253,7 +263,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
         else:  # is a row of values
             num_rows += 1
             if not pass_fail:
-                add_row_to_aggregates(metadata, row, col_aliases, col_types)
+                add_row_to_aggregates(metadata, row, col_aliases, col_types, nulls=nulls)
 
         if pass_fail and num_rows >= min_rows:
             raise ExtractionPassed
@@ -265,7 +275,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
     # add the originally skipped rows into the aggregates
     for row in last_rows:
         if len(row) == row_length:
-            add_row_to_aggregates(metadata, row, col_aliases, col_types)
+            add_row_to_aggregates(metadata, row, col_aliases, col_types, nulls=nulls)
 
     # extract free-text preamble, which may contain headers
     if collect_preamble and not fully_parsed:
@@ -292,10 +302,20 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
 
     add_final_aggregates(metadata, col_aliases, col_types, num_rows)
 
+    if null_inference:
+        null_indices = ni_model.predict(agg_data(metadata))
+        print null_indices
+        print col_aliases
+        print col_types
+        inferred_nulls = [null_list[int(i)] for i in null_indices]
+        return _extract_columnar_metadata(file_handle, delimiter, pass_fail=pass_fail,
+                                          collect_preamble=collect_preamble,
+                                          null_inference=False, nulls=inferred_nulls)
+
     return metadata
 
 
-def add_row_to_aggregates(metadata, row, col_aliases, col_types):
+def add_row_to_aggregates(metadata, row, col_aliases, col_types, nulls=None):
     """Adds row data to aggregates.
 
         :param metadata: (dict) metadata dictionary to add to
@@ -309,10 +329,14 @@ def add_row_to_aggregates(metadata, row, col_aliases, col_types):
         col_type = col_types[i]
         is_first_row = col_alias not in metadata["columns"].keys()
 
-        if is_first_row:
-            metadata["columns"][col_alias] = {}
-
         if col_type == "num":
+            # start off the metadata if this is the first row of values
+            if is_first_row:
+                metadata["columns"][col_alias] = {
+                    "min": [float("inf"), float("inf"), float("inf")],
+                    "max": [None, None, None],
+                    "total": 0
+                }
             # cast the field to a number to do numerical aggregates
             # the try except is used to pass over textual and blank space nulls on which type coercion will fail
             try:
@@ -321,21 +345,22 @@ def add_row_to_aggregates(metadata, row, col_aliases, col_types):
                 # skips adding to aggregates
                 continue
 
-            # start off the metadata if this is the first row of values
-            if is_first_row:
-                metadata["columns"][col_alias]["min"] = [float("inf"), float("inf"), float("inf")]
-                metadata["columns"][col_alias]["max"] = [None, None, None]
-                metadata["columns"][col_alias]["total"] = value
+            if nulls is not None:
+                null = nulls[i]
+                # if value is (close enough to) null, don't add it to the aggregates
+                if null is not None and abs(value - null) < NULL_EPSILON:
+                    continue
 
             # add row data to existing aggregates
-            else:
-                mins = list(set(metadata["columns"][col_alias]["min"] + [value]))
-                maxes = list(set(metadata["columns"][col_alias]["max"] + [value]))
-                metadata["columns"][col_alias]["min"] = nsmallest(3, mins)
-                metadata["columns"][col_alias]["max"] = nlargest(3, maxes)
-                metadata["columns"][col_alias]["total"] += value
+            mins = list(set(metadata["columns"][col_alias]["min"] + [value]))
+            maxes = list(set(metadata["columns"][col_alias]["max"] + [value]))
+            metadata["columns"][col_alias]["min"] = nsmallest(3, mins)
+            metadata["columns"][col_alias]["max"] = nlargest(3, maxes)
+            metadata["columns"][col_alias]["total"] += value
 
         elif col_type == "str":
+            if is_first_row:
+                metadata["columns"][col_alias] = {}
             # TODO: add string-specific field aggregates?
             pass
 
@@ -353,8 +378,8 @@ def add_final_aggregates(metadata, col_aliases, col_types, num_rows):
     for i in range(0, len(col_aliases)):
         col_alias = col_aliases[i]
 
-        if metadata["columns"][col_alias] == {}:
-            metadata["columns"].pop(col_alias)
+        # if metadata["columns"][col_alias] == {}:
+        #     metadata["columns"].pop(col_alias)
 
         if col_types[i] == "num":
             metadata["columns"][col_alias]["max"] = [val for val in metadata["columns"][col_alias]["max"]
@@ -445,6 +470,28 @@ def is_number(field):
         return False
 
 
+def agg_data(metadata):
+    data = [
+        [
+            col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 0 else 0,
+            col_agg["min"][1] - col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 1 else 0,
+            col_agg["min"][1] if "min" in col_agg.keys() and len(col_agg["min"]) > 1 else 0,
+            col_agg["min"][2] - col_agg["min"][1] if "min" in col_agg.keys() and len(col_agg["min"]) > 2 else 0,
+            col_agg["min"][2] if "min" in col_agg.keys() and len(col_agg["min"]) > 2 else 0,
+
+            col_agg["max"][0] if "max" in col_agg.keys() and len(col_agg["max"]) > 0 else 0,
+            col_agg["max"][0] - col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else 0,
+            col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else 0,
+            col_agg["max"][1] - col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else 0,
+            col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else 0,
+
+            col_agg["avg"] if "avg" in col_agg.keys() else 0,
+        ]
+        for col_alias, col_agg in metadata["columns"].iteritems()]
+
+    return data
+
+
 def extract_topic(file_handle, pass_fail=False):
     """Create free-text metadata JSON from file indicating topic
     and some human-readable indication of its content.
@@ -459,20 +506,17 @@ def extract_topic(file_handle, pass_fail=False):
     doc = re.sub(tag_remover, '', file_handle.read())
     doc = tokenizer.tokenize(doc)
 
-    if pass_fail:
-        if doc == []:
-            raise ExtractionFailed
-        else:
-            raise ExtractionPassed
-
-    dictionary = corpora.Dictionary.load('lda_model/climate_abstracts.dict')
-    model = LdaModel.load("lda_model/climate_abstracts.lda")
+    # if the doc is an empty list, it clearly can't be topic modeled
+    if not doc:
+        raise ExtractionFailed
+    elif pass_fail:
+        raise ExtractionPassed
 
     doc_bow = dictionary.doc2bow(doc)
 
-    topics = model[doc_bow]
+    topics = lda_model[doc_bow]
     max_topic = max(topics, key=lambda (i, p): p)[0]
-    topic_words = [str(w[0]) for w in LdaModel.show_topic(model, max_topic)]
+    topic_words = [str(w[0]) for w in LdaModel.show_topic(lda_model, max_topic)]
 
     metadata = {
         "topics": topics,

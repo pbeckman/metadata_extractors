@@ -1,1 +1,1 @@
-21,test_files/test_metadata.json
+19,test/test_files/test.zip

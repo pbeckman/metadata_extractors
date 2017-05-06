@@ -7,10 +7,11 @@ from metadata_util import extract_metadata
 def write_file_list(dir, list_file):
     for root, dirs, files in os.walk(dir):
         for file_name in files:
-            list_file.write(os.path.join(dir, file_name)+"\n")
+            if file_name[0] != ".":
+                list_file.write(os.path.join(dir, file_name) + "\n")
 
 
-def write_metadata(files, start_number, metadata_file, restart_file):
+def write_metadata(files, start_number, metadata_file, restart_file, pass_fail=False):
     for file_number in range(start_number, len(files)):
         full_path = files[file_number]
         path, file_name = full_path.strip().rsplit("/", 1)
@@ -21,7 +22,7 @@ def write_metadata(files, start_number, metadata_file, restart_file):
 
         metadata = {}
         try:
-            metadata = extract_metadata(file_name, path)
+            metadata = extract_metadata(file_name, path, pass_fail=pass_fail)
         except (UnicodeDecodeError, MemoryError, TypeError) as e:
             with open("errors.log", "a") as error_file:
                 error_file.write(
@@ -29,8 +30,34 @@ def write_metadata(files, start_number, metadata_file, restart_file):
 
         metadata_file.write(json.dumps(metadata) + ",\n")
 
-# with open("file_list.txt", "w") as lf:
-#     write_file_list("test_files", lf)
 
-with open("test_metadata.json", "a") as mf, open("file_list.txt", "r") as rf:
-    write_metadata(rf.readlines(), 0, mf, "restart.txt")
+def write_dict_to_csv(metadata, csv_writer):
+    cols = metadata["columns"].keys()
+    for col in cols:
+        col_agg = metadata["columns"][col]
+        csv_writer.writerow([
+            metadata["system"]["path"], metadata["system"]["file"], col,
+
+            col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 0 else None,
+            col_agg["min"][1] - col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 1 else None,
+            col_agg["min"][1] if "min" in col_agg.keys() and len(col_agg["min"]) > 1 else None,
+            col_agg["min"][2] - col_agg["min"][1] if "min" in col_agg.keys() and len(col_agg["min"]) > 2 else None,
+            col_agg["min"][2] if "min" in col_agg.keys() and len(col_agg["min"]) > 2 else None,
+
+            col_agg["max"][0] if "max" in col_agg.keys() and len(col_agg["max"]) > 0 else None,
+            col_agg["max"][0] - col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else None,
+            col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else None,
+            col_agg["max"][1] - col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else None,
+            col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else None,
+
+            col_agg["avg"] if "avg" in col_agg.keys() else None,
+
+            None  # space for null value to be recorded by hand
+        ])
+
+
+def write_cols_to_csv(metadata_file, csv_writer):
+    metadata = json.load(metadata_file)["files"]
+    for item in metadata:
+        if "columnar" in item["system"]["extractors"]:
+            write_dict_to_csv(item, csv_writer)
