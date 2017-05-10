@@ -19,8 +19,8 @@ lda_model = LdaModel.load("../lda_model/climate_abstracts.lda")
 # load null inference model
 with open(os.path.abspath("../null_inference_model/ni_model.pkl")) as model_file:
     ni_model = pkl.load(model_file)
+# maximum distance of value from null to still be considered null
 NULL_EPSILON = 1
-null_list = [None, -999, -9]
 
 
 class ExtractionFailed(Exception):
@@ -73,7 +73,7 @@ def extract_metadata(file_name, path, pass_fail=False):
                 pass
         elif any([i in mime_type for i in ["text", "csv", "xml"]]):
             try:
-                metadata.update(extract_columnar_metadata(file_handle, pass_fail=pass_fail))
+                metadata.update(extract_columnar_metadata(file_handle, pass_fail=pass_fail, null_inference=True))
                 metadata["system"]["extractors"].append("columnar")
             except ExtractionPassed:
                 metadata["system"]["extractors"].append("columnar")
@@ -173,27 +173,38 @@ class NumpyDecoder(json.JSONEncoder):
             return super(NumpyDecoder, self).default(obj)
 
 
-def extract_columnar_metadata(file_handle, pass_fail=False, collect_preamble=False):
+def extract_columnar_metadata(file_handle, pass_fail=False, collect_preamble=False, null_inference=False):
     """Get metadata from column-formatted file.
 
             :param file_handle: (file) open file
             :param pass_fail: (bool) whether to exit after ascertaining file class
             :param collect_preamble: (bool) whether to collect the free-text preamble at the start of the file
+            :param null_inference: (bool) whether to use the null inference model to remove nulls
             :returns: (dict) ascertained metadata
             :raises: (ExtractionFailed) if the file cannot be read as a columnar file"""
 
     try:
-        return _extract_columnar_metadata(file_handle, ",", pass_fail=pass_fail, collect_preamble=collect_preamble)
+        return _extract_columnar_metadata(
+            file_handle, ",",
+            pass_fail=pass_fail, collect_preamble=collect_preamble, null_inference=null_inference
+        )
     except ExtractionFailed:
         try:
-            return _extract_columnar_metadata(file_handle, "\t", pass_fail=pass_fail, collect_preamble=collect_preamble)
+            return _extract_columnar_metadata(
+                file_handle, "\t",
+                pass_fail=pass_fail, collect_preamble=collect_preamble, null_inference=null_inference
+            )
         except ExtractionFailed:
-            return _extract_columnar_metadata(file_handle, " ", pass_fail=pass_fail, collect_preamble=collect_preamble)
+            return _extract_columnar_metadata(
+                file_handle, " ",
+                pass_fail=pass_fail, collect_preamble=collect_preamble, null_inference=null_inference
+            )
 
 
 def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_preamble=False,
-                               null_inference=True, nulls=None):
-    # choose csv.reader parameters based on file type - if not csv, use whitespace-delimited
+                               null_inference=False, nulls=None):
+    """helper method for extract_columnar_metadata that uses a specific delimiter."""
+
     reverse_reader = ReverseReader(file_handle, delimiter=delimiter)
 
     # base dictionary in which to store all the metadata
@@ -201,6 +212,8 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
 
     # minimum number of rows to be considered an extractable table
     min_rows = 5
+    # number of rows used to generate aggregates for the null inference model
+    ni_rows = 100
     # number of rows to skip at the end of the file before reading
     end_rows = 5
     # size of extracted free-text preamble in characters
@@ -268,6 +281,14 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
         if pass_fail and num_rows >= min_rows:
             raise ExtractionPassed
 
+        # we've taken enough rows to use aggregates for null inference
+        if null_inference and num_rows >= ni_rows:
+            add_final_aggregates(metadata, col_aliases, col_types, num_rows)
+            return _extract_columnar_metadata(file_handle, delimiter, pass_fail=pass_fail,
+                                              collect_preamble=collect_preamble,
+                                              null_inference=False,
+                                              nulls=inferred_nulls(metadata))
+
     # extraction passed but there are too few rows
     if num_rows < min_rows:
         raise ExtractionFailed
@@ -276,6 +297,19 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
     for row in last_rows:
         if len(row) == row_length:
             add_row_to_aggregates(metadata, row, col_aliases, col_types, nulls=nulls)
+
+    add_final_aggregates(metadata, col_aliases, col_types, num_rows)
+
+    # add header list to metadata
+    if len(headers) > 0:
+        metadata["headers"] = list(set(headers))
+
+    # we've parsed the whole table, now do null inference
+    if null_inference:
+        return _extract_columnar_metadata(file_handle, delimiter, pass_fail=pass_fail,
+                                          collect_preamble=collect_preamble,
+                                          null_inference=False,
+                                          nulls=inferred_nulls(metadata))
 
     # extract free-text preamble, which may contain headers
     if collect_preamble and not fully_parsed:
@@ -296,21 +330,10 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
         if len(preamble) > 0:
             metadata["preamble"] = preamble
 
-    # add header list to metadata
-    if len(headers) > 0:
-        metadata["headers"] = list(set(headers))
-
-    add_final_aggregates(metadata, col_aliases, col_types, num_rows)
-
-    if null_inference:
-        null_indices = ni_model.predict(agg_data(metadata))
-        print null_indices
-        print col_aliases
-        print col_types
-        inferred_nulls = [null_list[int(i)] for i in null_indices]
-        return _extract_columnar_metadata(file_handle, delimiter, pass_fail=pass_fail,
-                                          collect_preamble=collect_preamble,
-                                          null_inference=False, nulls=inferred_nulls)
+    # remove empty string aggregates that were placeholders in null inference
+    for key in metadata["columns"].keys():
+        if metadata["columns"][key] == {}:
+            metadata["columns"].pop(key)
 
     return metadata
 
@@ -321,6 +344,7 @@ def add_row_to_aggregates(metadata, row, col_aliases, col_types, nulls=None):
         :param metadata: (dict) metadata dictionary to add to
         :param row: (list(str)) row of strings to add
         :param col_aliases: (list(str)) list of headers
+        :param nulls: (list(num)) list giving the null value to avoid for each column
         :param col_types: (list("num" | "str")) list of header types"""
 
     for i in range(0, len(row)):
@@ -348,7 +372,8 @@ def add_row_to_aggregates(metadata, row, col_aliases, col_types, nulls=None):
             if nulls is not None:
                 null = nulls[i]
                 # if value is (close enough to) null, don't add it to the aggregates
-                if null is not None and abs(value - null) < NULL_EPSILON:
+                # 0 is returned by the model if there is no null value
+                if null != 0 and abs(value - null) < NULL_EPSILON:
                     continue
 
             # add row data to existing aggregates
@@ -470,7 +495,7 @@ def is_number(field):
         return False
 
 
-def agg_data(metadata):
+def ni_data(metadata):
     data = [
         [
             col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 0 else 0,
@@ -526,8 +551,18 @@ def extract_topic(file_handle, pass_fail=False):
     return metadata
 
 
+def inferred_nulls(metadata):
+    """Determine the fraction of characters that are numeric in a sample of the file.
+
+        :param metadata: (dict) metadata dictionary containing aggregates
+        :returns: (list(num)) a list containing the null value for each column"""
+
+    return ni_model.predict(ni_data(metadata))
+
+
 def frac_numeric(file_handle, sample_length=1000):
     """Determine the fraction of characters that are numeric in a sample of the file.
+
         :param file_handle: (file) open file object
         :param sample_length: (int) length in bytes of sample to be read from start of file
         :returns: (float) portion numeric characters"""
