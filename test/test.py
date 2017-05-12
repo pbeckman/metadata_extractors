@@ -1,5 +1,6 @@
 import json
 import csv
+import os
 from metadata_extractors.metadata_util import extract_metadata
 from metadata_extractors.local_metadata_collector import write_file_list, write_metadata, write_cols_to_csv
 
@@ -37,13 +38,21 @@ def test_metadata_extraction(pass_fail=False):
 
 def write_test_metadata():
     with open("file_list.txt", "w") as lf:
-        write_file_list("test_files", lf)
+        write_file_list("/home/tskluzac/pub8", lf)
 
-    with open("test_metadata.json", "w") as mf, open("file_list.txt", "r") as rf:
-        mf.write('{"files":[')
+    with open("file_list.txt", "r") as rf:
+
+        if os.path.isfile("test_metadata.json"):
+            mf = open("metadata_5-12.json", "a")
+        else:
+            mf = open("metadata_5-12.json", "w")
+            mf.write('{"files":[')
+
         write_metadata(rf.readlines(), 0, mf, "restart.txt", pass_fail=False)
         mf.seek(-1, 1)
         mf.write(']}')
+
+    mf.close()
 
 
 def make_test_col_csv():
@@ -58,7 +67,8 @@ def make_test_col_csv():
     with open("test_metadata.json", "r") as mf:
         write_cols_to_csv(mf, csv_writer)
 
-# write_test_metadata()
+write_test_metadata()
 # make_test_col_csv()
+# test_metadata_extraction()
 
-test_metadata_extraction()
+
