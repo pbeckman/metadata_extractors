@@ -41,15 +41,18 @@ def write_test_metadata(metadata_file_name, new_file_list=False):
         with open("file_list.txt", "w") as lf:
             write_file_list("/home/tskluzac/pub8", lf)
 
-    with open("file_list.txt", "r") as rf:
+    with open("file_list.txt", "r") as lf:
+        restart_file = 0
 
         if os.path.isfile(metadata_file_name):
             mf = open(metadata_file_name, "a")
+            with open("restart.txt", "r") as rf:
+                restart_file = int(rf.read().split(",")[0].strip())
         else:
             mf = open(metadata_file_name, "w")
             mf.write('{"files":[')
 
-        write_metadata(rf.readlines(), 0, mf, "restart.txt", pass_fail=False)
+        write_metadata(lf.readlines(), restart_file, mf, "restart.txt", pass_fail=False)
         mf.seek(-1, 1)
         mf.write(']}')
 
