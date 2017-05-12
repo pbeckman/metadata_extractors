@@ -36,16 +36,17 @@ def test_metadata_extraction(pass_fail=False):
         raw_input()
 
 
-def write_test_metadata():
-    with open("file_list.txt", "w") as lf:
-        write_file_list("/home/tskluzac/pub8", lf)
+def write_test_metadata(metadata_file_name, new_file_list=False):
+    if new_file_list:
+        with open("file_list.txt", "w") as lf:
+            write_file_list("/home/tskluzac/pub8", lf)
 
     with open("file_list.txt", "r") as rf:
 
-        if os.path.isfile("test_metadata.json"):
-            mf = open("metadata_5-12.json", "a")
+        if os.path.isfile(metadata_file_name):
+            mf = open(metadata_file_name, "a")
         else:
-            mf = open("metadata_5-12.json", "w")
+            mf = open(metadata_file_name, "w")
             mf.write('{"files":[')
 
         write_metadata(rf.readlines(), 0, mf, "restart.txt", pass_fail=False)
@@ -67,7 +68,7 @@ def make_test_col_csv():
     with open("test_metadata.json", "r") as mf:
         write_cols_to_csv(mf, csv_writer)
 
-write_test_metadata()
+write_test_metadata("metadata_5-12.json")
 # make_test_col_csv()
 # test_metadata_extraction()
 
