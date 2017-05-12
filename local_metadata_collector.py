@@ -20,6 +20,7 @@ def write_metadata(files, start_number, metadata_file, restart_file, pass_fail=F
         with open(restart_file, "w") as rf:
             rf.write(str(file_number) + ',' + full_path)
 
+        print "extracting metadata from: {}".format(path + file_name)
         metadata = {}
         try:
             metadata = extract_metadata(file_name, path, pass_fail=pass_fail)
