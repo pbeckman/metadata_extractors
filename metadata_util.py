@@ -61,7 +61,7 @@ def extract_metadata(file_name, path, pass_fail=False):
 
         text_frac_num = 0.2
 
-        if extension == "nc":
+        if "nc" in extension.lower():
             try:
                 metadata.update(extract_netcdf_metadata(file_handle, pass_fail=pass_fail))
                 metadata["system"]["extractors"].append("netcdf")
@@ -73,7 +73,7 @@ def extract_metadata(file_name, path, pass_fail=False):
                 pass
         elif any([i in mime_type for i in ["text", "csv", "xml"]]):
             try:
-                metadata.update(extract_columnar_metadata(file_handle, pass_fail=pass_fail, null_inference=True))
+                metadata.update(extract_columnar_metadata(file_handle, pass_fail=pass_fail, null_inference=False))
                 metadata["system"]["extractors"].append("columnar")
             except ExtractionPassed:
                 metadata["system"]["extractors"].append("columnar")
@@ -365,6 +365,8 @@ def add_row_to_aggregates(metadata, row, col_aliases, col_types, nulls=None):
             # the try except is used to pass over textual and blank space nulls on which type coercion will fail
             try:
                 value = float(value)
+                if float(value) == int(value):
+                    value = int(value)
             except ValueError:
                 # skips adding to aggregates
                 continue
@@ -413,7 +415,7 @@ def add_final_aggregates(metadata, col_aliases, col_types, num_rows):
                                                      if val != float("inf")]
 
             metadata["columns"][col_alias]["avg"] = round(
-                metadata["columns"][col_alias]["total"] / num_rows,
+                float(metadata["columns"][col_alias]["total"]) / num_rows,
                 max_precision(metadata["columns"][col_alias]["min"] + metadata["columns"][col_alias]["max"])
             ) if len(metadata["columns"][col_alias]["min"]) > 0 else None
             metadata["columns"][col_alias].pop("total")

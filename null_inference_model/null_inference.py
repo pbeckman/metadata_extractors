@@ -2,6 +2,7 @@ import pandas as pd
 import itertools
 from math import isnan
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.linear_model import LogisticRegression
 from sklearn.decomposition import PCA
 from sklearn.metrics import confusion_matrix, accuracy_score, recall_score, precision_score
 from sklearn.model_selection import train_test_split, GridSearchCV, ShuffleSplit, StratifiedKFold
@@ -178,22 +179,44 @@ def train_and_save(model, X, y, file_name):
         pkl.dump(model, f)
 
 
+def get_best_params(model, X, y):
+    """Find the best parameters for the model.
+
+            :param model: (sklearn.model) model to fit
+            :param X: (np.array) data matrix
+            :param y: (np.array) true value column vector
+            :return: (dict) optimal parameters"""
+
+    params = {"n_neighbors": np.arange(18, 21, 1),
+              "metric": ["euclidean", "cityblock"],
+              "weights": ['uniform', 'distance']
+              }
+
+    model = GridSearchCV(model, params)
+
+    model.fit(X, y.reshape(y.shape[0], ))
+
+    return model.best_params_
+
+
 if __name__ == "__main__":
     data = pd.read_csv('col_metadata.csv')
-    print data.shape
+
     X = data.iloc[:, 3:-2].values
     y = data.iloc[:, -1:].values
 
     X, y = clean_data(X, y)
-    print X.shape
+
     # nulls, y = bin_null_values(y)
     # y = y.reshape(y.shape[0], )
     # print nulls
-    #
-    model = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='euclidean',
-                                 metric_params=None, n_jobs=1, n_neighbors=19,
+
+    model = KNeighborsClassifier(algorithm='auto', leaf_size=30, metric='cityblock',
+                                 metric_params=None, n_jobs=1, n_neighbors=5,
                                  weights='distance')
 
-    # cross_validation(model, X, y, splits=10000)
+    # print get_best_params(model, X, y)
 
-    train_and_save(model, X, y, "ni_model.pkl")
+    cross_validation(model, X, y, splits=10000)
+
+    # train_and_save(model, X, y, "ni_model.pkl")
