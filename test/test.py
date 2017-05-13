@@ -71,7 +71,7 @@ def make_test_col_csv():
     with open("test_metadata.json", "r") as mf:
         write_cols_to_csv(mf, csv_writer)
 
-write_test_metadata("metadata_5-12.json")
+write_test_metadata("metadata_5-12.json", new_file_list=True)
 # make_test_col_csv()
 # test_metadata_extraction()
 

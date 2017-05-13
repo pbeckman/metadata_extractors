@@ -497,7 +497,27 @@ def is_number(field):
         return False
 
 
+def inferred_nulls(metadata):
+    """Infer the null value of each column given aggregates.
+
+        :param metadata: (dict) metadata dictionary containing aggregates
+        :returns: (list(num)) a list containing the null value for each column"""
+
+    return ni_model.predict(ni_data(metadata))
+
+
 def ni_data(metadata):
+    """Format metadata into a 2D array so that it can be input to the null inference model.
+    Columns are:
+    [
+        "min_1", "min_diff_1", "min_2", "min_diff_1", "min_3",
+        "max_1", "max_diff_1", "max_2", "max_diff_1", "max_3",
+        "avg"
+    ]
+
+        :param metadata: (dict) metadata dictionary containing aggregates
+        :returns: (list(list(num))) a 2D array of data"""
+
     data = [
         [
             col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 0 else 0,
@@ -551,15 +571,6 @@ def extract_topic(file_handle, pass_fail=False):
     }
 
     return metadata
-
-
-def inferred_nulls(metadata):
-    """Determine the fraction of characters that are numeric in a sample of the file.
-
-        :param metadata: (dict) metadata dictionary containing aggregates
-        :returns: (list(num)) a list containing the null value for each column"""
-
-    return ni_model.predict(ni_data(metadata))
 
 
 def frac_numeric(file_handle, sample_length=1000):
