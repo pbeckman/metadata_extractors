@@ -562,6 +562,9 @@ def extract_topic(file_handle, pass_fail=False):
     doc_bow = dictionary.doc2bow(doc)
 
     topics = lda_model[doc_bow]
+    # if no words are common to the training corpus, topics will be an empty list
+    if not topics:
+        raise ExtractionFailed
     max_topic = max(topics, key=lambda (i, p): p)[0]
     topic_words = [str(w[0]) for w in LdaModel.show_topic(lda_model, max_topic)]
 
