@@ -8,7 +8,7 @@ def write_file_list(dir, list_file):
     for root, dirs, files in os.walk(dir):
         for file_name in files:
             if file_name[0] != ".":
-                list_file.write(os.path.join(dir, file_name) + "\n")
+                list_file.write(os.path.join(root, file_name) + "\n")
 
 
 def write_metadata(files, start_number, metadata_file, restart_file, pass_fail=False):
