@@ -24,7 +24,7 @@ def write_metadata(files, start_number, metadata_file, restart_file, pass_fail=F
         try:
             metadata = extract_metadata(file_name, path, pass_fail=pass_fail)
             metadata_file.write(json.dumps(metadata) + ",\n")
-        except (UnicodeDecodeError, MemoryError, TypeError) as e:
+        except (OverflowError, UnicodeDecodeError, MemoryError, TypeError) as e:
             with open("errors.log", "a") as error_file:
                 error_file.write(
                     "{} :: {}\n{}\n\n".format(full_path, str(e), traceback.format_exc()))
