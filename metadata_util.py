@@ -13,11 +13,11 @@ from gensim.models.ldamodel import LdaModel
 from nltk.tokenize import RegexpTokenizer
 
 # load necessary LDA resources
-dictionary = corpora.Dictionary.load("../lda_model/climate_abstracts.dict")
-lda_model = LdaModel.load("../lda_model/climate_abstracts.lda")
+dictionary = corpora.Dictionary.load("../ML_models/lda_model/climate_abstracts.dict")
+lda_model = LdaModel.load("../ML_models/lda_model/climate_abstracts.lda")
 
 # load null inference model
-with open(os.path.abspath("../null_inference_model/ni_model.pkl")) as model_file:
+with open(os.path.abspath("../ML_models/null_inference_model/ni_model.pkl")) as model_file:
     ni_model = pkl.load(model_file)
 # maximum distance of value from null to still be considered null
 NULL_EPSILON = 1
@@ -41,7 +41,7 @@ def extract_metadata(file_name, path, pass_fail=False):
 
     with open(path + file_name, 'rU') as file_handle:
 
-        extension = file_name.split('.', 1)[1] if '.' in file_name else "no extension"
+        extension = file_name.split('.')[-1] if '.' in file_name else "no extension"
         mime = magic.Magic(mime=True)
         mime_type = mime.from_file(path + file_name)
         metadata = {
@@ -267,11 +267,11 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
             if len(set(row)) == len(row):
                 for i in range(0, len(row)):
                     metadata["columns"][row[i]] = metadata["columns"].pop(col_aliases[i])
-                col_aliases = row
+                col_aliases = [header.lower() for header in row]
 
             for header in row:
                 if header != "":
-                    headers.append(header)
+                    headers.append(header.lower())
 
         else:  # is a row of values
             num_rows += 1

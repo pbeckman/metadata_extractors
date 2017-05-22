@@ -28,35 +28,3 @@ def write_metadata(files, start_number, metadata_file, restart_file, pass_fail=F
             with open("errors.log", "a") as error_file:
                 error_file.write(
                     "{} :: {}\n{}\n\n".format(full_path, str(e), traceback.format_exc()))
-
-
-def write_dict_to_csv(metadata, csv_writer):
-    cols = metadata["columns"].keys()
-    for col in cols:
-        col_agg = metadata["columns"][col]
-        csv_writer.writerow([
-            metadata["system"]["path"], metadata["system"]["file"], col,
-
-            col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 0 else None,
-            col_agg["min"][1] - col_agg["min"][0] if "min" in col_agg.keys() and len(col_agg["min"]) > 1 else None,
-            col_agg["min"][1] if "min" in col_agg.keys() and len(col_agg["min"]) > 1 else None,
-            col_agg["min"][2] - col_agg["min"][1] if "min" in col_agg.keys() and len(col_agg["min"]) > 2 else None,
-            col_agg["min"][2] if "min" in col_agg.keys() and len(col_agg["min"]) > 2 else None,
-
-            col_agg["max"][0] if "max" in col_agg.keys() and len(col_agg["max"]) > 0 else None,
-            col_agg["max"][0] - col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else None,
-            col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else None,
-            col_agg["max"][1] - col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else None,
-            col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else None,
-
-            col_agg["avg"] if "avg" in col_agg.keys() else None,
-
-            None  # space for null value to be recorded by hand
-        ])
-
-
-def write_cols_to_csv(metadata_file, csv_writer):
-    metadata = json.load(metadata_file)["files"]
-    for item in metadata:
-        if "columnar" in item["system"]["extractors"]:
-            write_dict_to_csv(item, csv_writer)
