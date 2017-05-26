@@ -1,8 +1,11 @@
 import json
 import csv
 import os
+import re
+import pickle as pkl
 from metadata_extractors.metadata_util import extract_metadata
-from metadata_extractors.local_metadata_collector import write_file_list, write_metadata
+from metadata_extractors.metadata_collector import make_file_list, write_metadata
+from metadata_extractors.metadata_refiner import make_filesystem_graph, topic_mixture
 
 
 def display_metadata(file_name, path, pass_fail=False):
@@ -11,52 +14,68 @@ def display_metadata(file_name, path, pass_fail=False):
     {}
     ----------------------------
     """.format(file_name)
-    print json.dumps(extract_metadata(file_name, path, pass_fail), sort_keys=True, indent=4, separators=(',', ': '))
+    print json.dumps(extract_metadata(file_name, path, pass_fail=pass_fail), sort_keys=True, indent=4, separators=(',', ': '))
 
 
 def test_metadata_extraction(pass_fail=False):
     for f in [
-        # "no_headers.csv",
-        # "some_netcdf.nc",
-        # "single_header.csv",
-        # "multiple_headers.csv",
-        # "single_header.txt",
+        "no_headers.csv",
+        "some_netcdf.nc",
+        "single_header.csv",
+        "multiple_headers.csv",
+        "single_header.txt",
         "preamble.exc.csv",
-        # "preamble.dat",
-        # "preamble.c32",
-        # "test.pdf",
-        # "test.zip",
-        # "excel.xls",
-        # "image.jpg",
-        # "structured.xml",
-        # "readme.txt",
-        # "readme2.txt"
+        "preamble.dat",
+        "preamble.c32",
+        "test.pdf",
+        "test.zip",
+        "excel.xls",
+        "image.jpg",
+        "structured.xml",
+        "readme.txt",
+        "readme2.txt"
     ]:
         display_metadata(f, "test_files/", pass_fail=pass_fail)
         raw_input()
 
 
-def write_test_metadata(metadata_file_name, new_file_list=False):
+def write_test_metadata(metadata_file_name, new_file_list=False, overwrite=False):
     if new_file_list:
-        with open("file_list.txt", "w") as lf:
-            write_file_list("/home/tskluzac/pub8", lf)
+        with open("test_file_list.txt", "w") as lf:
+            make_file_list("test_files", lf)
 
-    with open("file_list.txt", "r") as lf:
+    with open("test_file_list.txt", "r") as lf:
         restart_file = 0
 
-        if os.path.isfile(metadata_file_name):
-            mf = open(metadata_file_name, "a")
-            with open("restart.txt", "r") as rf:
-                restart_file = int(rf.read().split(",")[0].strip())
+        if os.path.isfile(metadata_file_name) and not overwrite:
+            try:
+                with open("restart.txt", "r") as rf:
+                    restart_file = int(rf.read().split(",")[0].strip())
+                mf = open(metadata_file_name, "a")
+            except ValueError:
+                mf = open(metadata_file_name, "w")
+                mf.write('{"files":[')
         else:
             mf = open(metadata_file_name, "w")
             mf.write('{"files":[')
 
         write_metadata(lf.readlines(), restart_file, mf, "restart.txt", pass_fail=False)
-        mf.seek(-1, 1)
+        mf.seek(-2, 1)
         mf.write(']}')
 
     mf.close()
+
+
+def write_test_graph(graph_file_name):
+    with open(graph_file_name, "wb") as graph_file:
+        make_filesystem_graph("test_files", graph_file=graph_file)
+
+
+def test_topic_mixture(graph_file_name, metadata_file_name):
+    with open(graph_file_name, "rb") as graph_file, open(metadata_file_name, "r") as metadata_file:
+        metadata = json.load(metadata_file)["files"]
+        G = pkl.load(graph_file)
+        print topic_mixture("test_files/no_headers.csv", metadata, G)
 
 
 def write_dict_to_csv(metadata, csv_writer):
@@ -112,8 +131,10 @@ def make_test_col_csv(num_rows=None):
     with open("metadata_5-15.json", "r") as mf:
         write_cols_to_csv(mf, csv_writer, num_rows=num_rows)
 
-# write_test_metadata("metadata_5-12.json", new_file_list=False)
-make_test_col_csv()
+write_test_metadata("test_metadata.json", new_file_list=True, overwrite=True)
+# write_test_graph("test_graph.pkl")
+# make_test_col_csv()
 # test_metadata_extraction()
+# test_topic_mixture("test_graph.pkl", "test_metadata.json")
 
 

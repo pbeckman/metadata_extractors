@@ -1,8 +1,10 @@
 import pandas as pd
 import numpy as np
 from sklearn.svm import SVC
+from sklearn.ensemble import RandomForestClassifier
 
-from metadata_extractors.ML_models.ML_util import fill_zeros, get_text_rows, cross_validation, get_best_params
+from metadata_extractors.ML_models.ML_util import fill_zeros, get_text_rows, \
+    train_and_save, cross_validation, get_best_params
 
 
 def clean_data(X, y):
@@ -24,22 +26,27 @@ def clean_data(X, y):
 if __name__ == "__main__":
     data = pd.read_csv('header_training_data.csv')
 
-    X = data.iloc[1:10000, 3:].values
-    y = np.asarray([[header] for header in data.iloc[1:10000, 2].values])
+    X = data.iloc[:, 3:].values
+    y = np.asarray([[header] for header in data.iloc[:, 2].values])
 
     print "cleaning data"
     X, y = clean_data(X, y)
 
-    model = SVC(C=1.0, cache_size=200, class_weight=None, coef0=0.0,
-                decision_function_shape=None, degree=3, gamma='auto', kernel='rbf',
-                max_iter=-1, probability=False, random_state=None, shrinking=True,
-                tol=0.001, verbose=False)
+    model = RandomForestClassifier(n_estimators=10, criterion='gini', max_depth=7,
+                                   min_samples_split=2, min_samples_leaf=1, min_weight_fraction_leaf=0.0,
+                                   max_features='auto', max_leaf_nodes=None, min_impurity_split=1e-07,
+                                   bootstrap=True, oob_score=False, n_jobs=1, random_state=None, verbose=0,
+                                   warm_start=False, class_weight=None)
 
     # with open("header_model.pkl", "rb") as model_file:
     #     model = pkl.load(model_file)
 
+    # print "best parameters:"
+    # params = {}
+    # print get_best_params(model, params, X, y)
+
     print "cross-validating model"
-    cross_validation(model, X, y, splits=10, decision_threshold=2)
+    cross_validation(model, X, y, splits=5, certainty_threshold=0.98)
 
     # print "training and saving model"
     # train_and_save(model, X, y, "header_model.pkl")

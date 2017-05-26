@@ -1,0 +1,263 @@
+<?xml-stylesheet href="xmlblob.xsl" type="text/xsl"?>
+
+<metadata>
+
+   <submissionDate>9/30/2015</submissionDate>
+   
+   <accn>0132047</accn>
+   <doi></doi>
+   
+   <type>Surface underway</type>
+   
+   <related>
+      <name></name>
+      <link></link>
+   </related>
+
+   <person>
+      <name>Catherine E. Cosca</name>
+      <organization>NOAA/PMEL</organization>
+      <deliverypoint1>7600 Sand Point Way NE</deliverypoint1>
+      <deliverypoint2></deliverypoint2>
+      <city>Seattle</city>
+      <administrativeArea>WA</administrativeArea>
+      <zip>98115</zip>
+      <country>USA</country>
+      <phone>206-526-6183</phone>
+      <email>Cathy.Cosca@noaa.gov</email>
+      <ID></ID>
+      <IDtype></IDtype>
+      <role>Investigator</role>
+   </person>
+
+   <person>
+      <name>Richard A. Feely</name>
+      <organization>NOAA/PMEL</organization>
+      <deliverypoint1>7600 Sand Point Way NE</deliverypoint1>
+      <deliverypoint2></deliverypoint2>
+      <city>Seattle</city>
+      <administrativeArea>WA</administrativeArea>
+      <zip>98115</zip>
+      <country>USA</country>
+      <phone>206-526-6214</phone>
+      <email>Richard.A.Feely at noaa.gov</email>
+      <ID></ID>
+      <IDtype></IDtype>
+      <role>Investigator</role>
+   </person>
+
+   <person>
+      <name>Simone R. Alin</name>
+      <organization>NOAA/PMEL</organization>
+      <deliverypoint1>7600 Sand Point Way NE</deliverypoint1>
+      <deliverypoint2></deliverypoint2>
+      <city>Seattle</city>
+      <administrativeArea>WA</administrativeArea>
+      <zip>98115</zip>
+      <country>USA</country>
+      <phone>206-526-6819</phone>
+      <email>simone.r.alin at noaa.gov</email>
+      <ID></ID>
+      <IDtype></IDtype>
+      <role>Investigator</role>
+   </person>
+
+   <datasubmitter>
+      <name>Catherine E. Cosca</name>
+      <organization>NOAA/PMEL</organization>
+      <deliverypoint1>7600 Sand Point Way NE</deliverypoint1>
+      <deliverypoint2></deliverypoint2>
+      <city>Seattle</city>
+      <administrativeArea>WA</administrativeArea>
+      <zip>98115</zip>
+      <country>USA</country>
+      <phone>206-526-6183</phone>
+      <email>Cathy.Cosca@noaa.gov</email>
+      <ID></ID>
+      <IDtype></IDtype>
+   </datasubmitter>
+
+
+   <title>Partial pressure of carbon dioxide (pCO2), temperature, salinity and other variables collected from surface underway observations using shower head equilibrator, carbon dioxide 
+gas detector, and other instruments from container ship Cap Blanche in the Pacific Ocean from 2014-02-01 to 2014-11-26 (NCEI Accession 0132047)</title>
+
+   <abstract>Underway measurements of pCO2, salinity, sea surface temperature, and other parameters were collected during 6 trans-Pacific crossings in 2014 on the container ship Cap Blanche.  Cruise names and expocodes:  CB2014_02 (AG5W20140201), CB2014_03 (AG5W20140327), CB2014_05 (AG5W20140523), CB2014_07 (AG5W20140718), CB2014_09 (AG5W20140912), CB2014_11 (AG5W20141113).  All cruises started in Long Beach California and ended in New Zealand.  This effort was conducted in support of NOAA's Climate Program Office (CPO), and Ocean Acidification Program (OAP).</abstract>
+
+   <purpose>The major objectives of the project were to and to continue a time series documenting the distribution of surface and atmospheric fCO2, salinity, temperature, and other parameters, and to characterize and map the key indicators of ocean acidification (OA) across the Pacific Ocean.</purpose>
+
+   <startdate>2/1/2014</startdate>
+   <enddate>11/26/2014</enddate>
+
+   <westbd>176.839</westbd>
+   <eastbd>-117.804</eastbd>
+   <northbd>32.607</northbd>
+   <southbd>-36.223</southbd>
+
+   <spatialReference>WGS 84</spatialReference>
+
+   <geographicName>Pacific Ocean, North Pacific Ocean, South Pacific Ocean, Equatorial Pacific</geographicName>
+
+   <locationOrganism></locationOrganism>
+
+   <fundingAgency>
+      <agency>NOAA's Ocean Acidification Program</agency>
+      <title>Surface Water pCO2 Measurements from Ships; West Coast Ocean Acidification Monitoring Network: Volunteer Observing Ships</title>
+      <ID>OAPFY12.03.PMEL.002</ID>
+   </fundingAgency>
+
+   <fundingAgency>
+      <agency>NOAA's Climate Program Office</agency>
+      <title></title>
+      <ID></ID>   
+   </fundingAgency>
+
+   <researchProject>none</researchProject>
+
+   <Platform>
+      <PlatformName>Cap Blanche</PlatformName>
+      <PlatformID>AG5W</PlatformID>
+      <PlatformType>Container Ship</PlatformType>
+      <PlatformOwner>Hamburg Sud</PlatformOwner>
+      <PlatformCountry>Germany</PlatformCountry>
+   </Platform>
+      
+   <expocode>AG5W20140201, AG5W20140327, AG5W20140523, AG5W20140718, AG5W20140912, AG5W20141113</expocode>
+   <cruiseID>CB2014_02, CB2014_03, CB2014_05, CB2014_07, CB2014_09, CB2014_11</cruiseID>
+   <section> </section>
+   <citation>Cosca, Catherine E.; Feely, Richard A.; Alin, Simone R.; Lebon, Geoffrey T. (2015). Partial pressure of carbon dioxide (pCO2), temperature, salinity 
+and other variables collected from surface underway observations using shower head equilibrator, carbon dioxide gas detector, and other instruments 
+from container ship Cap Blanche in the Pacific Ocean from 2014-02-01 to 2014-11-26 (NCEI Accession 0132047). NOAA National Centers for Environmental Information. Dataset. [access date]</citation>
+
+   <reference>Pierrot, D.; Neill, C.; Sullivan, K.; Castle, R.; Wanninkhof, R.; Luger, H.; Johannessen, T.; Olsen, A.; Feely, R.A.; and Cosca, C.E. (2009). 
+Recommendations for autonomous underway pCO2 measuring systems and data-reduction routines. Deep-Sea Res., II, v. 56, pp. 512-522.</reference>
+
+   <reference>Feely, R.A., R. Wanninkhof, H.B. Milburn, C.E. Cosca, M. Stapp, and P.P. Murphy,  A new automated underway system for making high precision pCO2 measurements onboard research ships, 
+Analytica Chim. Acta, 377, 185-191, 1998.</reference>
+
+   <reference>Wanninkhof and Thoning,  Measurement of fugacity of Carbon Dioxide in surface water and air using continuous sampling methods, Marine Chemistry, 44, 189-205, 1993.</reference>
+
+   <suppleInfo>http://www.pmel.noaa.gov/co2/</suppleInfo>
+   
+   <link_landing>http://data.nodc.noaa.gov/cgi-bin/iso?id=gov.noaa.nodc:0132047</link_landing>
+   <link_download>http://accession.nodc.noaa.gov/0132047/data/0-data/</link_download>
+
+   <variable>
+      <fullname>pCO2 (fCO2) autonomous</fullname>
+      <abbrev>fCO2W@SST</abbrev>
+      <observationType>Surface underway</observationType>
+      <insitu>In-situ observation</insitu>
+      <manipulationMethod></manipulationMethod>
+      <unit>uatm</unit>
+      <measured>Measured</measured>
+      <calcMethod></calcMethod>
+      <samplingInstrument>Seawater pump</samplingInstrument>
+      <locationSeawaterIntake>Bow</locationSeawaterIntake>
+      <DepthSeawaterIntake>5 meters</DepthSeawaterIntake>
+      <analyzingInstrument>General Oceanics 8050.  PMEL system ID: GO7</analyzingInstrument>
+      <detailedInfo>The sampling and analyzing methods of the Neill/General Oceanics Underway pCO2 systems are described in detail in: 
+Pierrot, D.; Neill, C.; Sullivan, K.; Castle, R.; Wanninkhof, R.; Luger, H.; Johannessen, T.; Olsen, A.; Feely, R.A.; and Cosca, C.E. (2009). Recommendations for autonomous underway pCO2 measuring systems and data-reduction routines. Deep-Sea Res., II, v. 56, pp. 512-522.</detailedInfo>
+      <equilibrator>
+         <type>Shower head</type>
+         <volume>~0.5 L</volume>
+         <vented>Vented</vented>
+         <waterFlowRate>3 L/min</waterFlowRate>
+         <gasFlowRate>~0.8 L/m</gasFlowRate>
+         <temperatureEquilibratorMethod>Hart Scientific model 1521 digital thermometer, serial number A77488, with an NIST traceable model 5610 thermistor probe, serial number A690613.  Accurate to plus minus 0.01 degrees Celsius.</temperatureEquilibratorMethod>
+         <pressureEquilibratorMethod>Setra 239 differential pressure transducer, accurate to plus minus 0.15 hPa.  The equilibrator was passively vented to a secondary equilibrator, and the Licor sample output was vented to the laboratory when CO2 measurements were made, thus equilibrator headspace pressure was assumed to be laboratory pressure.  Pressure in the laboratory was measured with a GE Druck barometer, serial number 3013024, with an accuracy of  plus minus 0.01 %.</pressureEquilibratorMethod>
+         <dryMethod>From Pierrot, et al.:  Sample air is dried in a condenser that is cooled to 4-5 oC by a Peltier thermoelectric
+device. This partially dried air flushes a chamber that is vented and remains at
+ambient pressure. The dried air inside the chamber is used as the counter flow in the
+Nafion tubing. A vacuum pump pulls the dried air from the chamber first through a
+fixed restrictor and then through the Nafion tubes, thus creating an absolute
+pressure and corresponding partial pressure gradient for water vapor across the
+membrane. When atmospheric air is measured, some of the partially dried air (80-
+100 ml/min) is pushed through a Nafion tube, the analyzer and out a vent instead of
+flushing the chamber.
+The headspace gas, when being measured, is circulated in a closed loop through
+the analyzer at a rate similar to that of the atmospheric air (80-100 ml/min). It is
+dried first in the condenser, then in a Nafion tube prior to entering the analyzer and
+being returned to the equilibrator.   Typically, the water mole fraction (xH2O) in the
+dried gas is about 2 parts per thousand (ppt), which corresponds to a dew point
+temperature of about -20 degrees Celsius.  The liquid water condensed out of the sample air
+streams is removed by peristaltic pumps into the vent equilibrator at intervals
+determined by the user.</dryMethod>
+      </equilibrator>
+      <gasDetector>
+         <manufacturer>Licor, Inc</manufacturer>
+         <model>Licor 7000, IRG4-0560</model>
+         <resolution>0.2 uatm</resolution>
+         <uncertainty>0.3 uatm for equilibrator measurements, 0.2 uatm for atmospheric measurements</uncertainty>
+      </gasDetector>
+      <standardization>
+         <description>The system runs a full cycle in approximately 7 hours.  The cycle starts with 4 standard gases, then measures three rounds of 6 atmopherice samples followed by 50 surface water samples.  Each new gas is flushed through the Licor Analyzer for 2 minutes prior to a stop-flow measurement.</description>
+         <frequency>Every 7 hours</frequency>
+         <standardgas>
+            <manufacturer>Standard gases are supplied by NOAA's Earth System Research Laboratory, Global Monitoring Division, in Boulder, CO, and are directly traceable to the WMO scale.</manufacturer>
+            <concentration>LL83535, 246.77 ppm;  LL108050, 399.22 ppm; LL108059, 496.103 ppm; LL154371, 628.59 ppm</concentration>
+            <uncertainty>0.01 ppm</uncertainty>
+         </standardgas>
+      </standardization>
+      <waterVaporCorrection>Details of the data reduction are described in Pierrot, et.al. (2009).</waterVaporCorrection>
+      <temperatureCorrection>Details of the data reduction are described in Pierrot, et.al. (2009).</temperatureCorrection>
+      <co2ReportTemperature>In situ sea surface temperature</co2ReportTemperature>
+      <uncertainty>plus minus 0.01 degrees Celsius</uncertainty>
+      <flag>WOCE quality control flags are used: 2 = good value, 3 = questionable value, 4 = bad value</flag>
+      <methodReference>Pierrot, D.; Neill, C.; Sullivan, K.; Castle, R.; Wanninkhof, R.; Luger, H.; Johannessen, T.; Olsen, A.; Feely, R.A.; and Cosca, C.E. (2009). Recommendations for autonomous underway pCO2 measuring systems and data-reduction routines. Deep-Sea Res., II, v. 56, pp. 512-522.</methodReference>
+      <researcherName>Catherine E. Cosca</researcherName>
+      <researcherInstitution>Pacific Marine Environmental Laboratory, National Oceanic and Atmospheric Administration</researcherInstitution>
+      <internal>4</internal>
+   </variable>
+
+   <variable>
+      <abbrev>SST(TSG)_C</abbrev>
+      <fullname>Sea Surface Temperature</fullname>
+      <observationType>Surface Underway</observationType>
+      <insitu>In-situ observation</insitu>
+      <unit>Degree Celcius</unit>
+      <measured>Measured</measured>
+      <calcMethod></calcMethod>
+      <samplingInstrument>Seabird 38, serial number 3848581-0383</samplingInstrument>
+      <analyzingInstrument></analyzingInstrument>
+      <duration></duration>
+      <detailedInfo></detailedInfo>
+      <replicate></replicate>
+      <uncertainty>0.0025 degrees Celsius</uncertainty>
+      <flag></flag>
+      <methodReference></methodReference>
+      <biologicalSubject></biologicalSubject>
+      <speciesID></speciesID>
+      <lifeStage></lifeStage>
+      <researcherName></researcherName>
+      <researcherInstitution></researcherInstitution>
+      <internal>0</internal>
+   </variable>
+
+   <variable>
+      <abbrev>SAL(TSG)_PERMIL</abbrev>
+      <fullname>Salinity</fullname>
+      <observationType>Surface Underway</observationType>
+      <insitu>In-situ observation</insitu>
+      <unit></unit>
+      <measured>Measured</measured>
+      <calcMethod></calcMethod>
+      <samplingInstrument>Seabird 45, serial number 4539646-0143</samplingInstrument>
+      <analyzingInstrument></analyzingInstrument>
+      <duration></duration>
+      <detailedInfo></detailedInfo>
+      <replicate></replicate>
+      <uncertainty>0.005 PSU</uncertainty>
+      <flag></flag>
+      <methodReference></methodReference>
+      <biologicalSubject></biologicalSubject>
+      <speciesID></speciesID>
+      <lifeStage></lifeStage>
+      <researcherName></researcherName>
+      <researcherInstitution></researcherInstitution>
+      <internal>0</internal>
+   </variable>
+
+
+<update>26-Oct-2015</update>
+
+
+</metadata>

@@ -1,8 +1,9 @@
 import json
-import numpy
 import os
 import re
 import magic
+import StringIO
+import numpy as np
 import pickle as pkl
 from netCDF4 import Dataset
 from decimal import Decimal
@@ -73,8 +74,13 @@ def extract_metadata(file_name, path, pass_fail=False):
                 pass
         elif any([i in mime_type for i in ["text", "csv", "xml"]]):
             try:
-                metadata.update(extract_columnar_metadata(file_handle, pass_fail=pass_fail, null_inference=False))
+                metadata.update(extract_columnar_metadata(file_handle,
+                                                          pass_fail=pass_fail, lda_preamble=True,
+                                                          null_inference=False))
                 metadata["system"]["extractors"].append("columnar")
+                # check if LDA was performed successfully on a preamble
+                if "topics" in metadata.keys():
+                    metadata["system"]["extractors"].append("lda")
             except ExtractionPassed:
                 metadata["system"]["extractors"].append("columnar")
                 pass
@@ -163,22 +169,22 @@ class NumpyDecoder(json.JSONEncoder):
     other metadata scrapers like the csv, which returns a python dict"""
 
     def default(self, obj):
-        if isinstance(obj, numpy.generic):
-            return numpy.asscalar(obj)
-        elif isinstance(obj, numpy.ndarray):
+        if isinstance(obj, np.generic):
+            return np.asscalar(obj)
+        elif isinstance(obj, np.ndarray):
             return obj.tolist()
-        elif isinstance(obj, numpy.dtype):
+        elif isinstance(obj, np.dtype):
             return str(obj)
         else:
             return super(NumpyDecoder, self).default(obj)
 
 
-def extract_columnar_metadata(file_handle, pass_fail=False, collect_preamble=False, null_inference=False):
+def extract_columnar_metadata(file_handle, pass_fail=False, lda_preamble=False, null_inference=False):
     """Get metadata from column-formatted file.
 
             :param file_handle: (file) open file
             :param pass_fail: (bool) whether to exit after ascertaining file class
-            :param collect_preamble: (bool) whether to collect the free-text preamble at the start of the file
+            :param lda_preamble: (bool) whether to collect the free-text preamble at the start of the file
             :param null_inference: (bool) whether to use the null inference model to remove nulls
             :returns: (dict) ascertained metadata
             :raises: (ExtractionFailed) if the file cannot be read as a columnar file"""
@@ -186,22 +192,22 @@ def extract_columnar_metadata(file_handle, pass_fail=False, collect_preamble=Fal
     try:
         return _extract_columnar_metadata(
             file_handle, ",",
-            pass_fail=pass_fail, collect_preamble=collect_preamble, null_inference=null_inference
+            pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference
         )
     except ExtractionFailed:
         try:
             return _extract_columnar_metadata(
                 file_handle, "\t",
-                pass_fail=pass_fail, collect_preamble=collect_preamble, null_inference=null_inference
+                pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference
             )
         except ExtractionFailed:
             return _extract_columnar_metadata(
                 file_handle, " ",
-                pass_fail=pass_fail, collect_preamble=collect_preamble, null_inference=null_inference
+                pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference
             )
 
 
-def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_preamble=False,
+def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, lda_preamble=False,
                                null_inference=False, nulls=None):
     """helper method for extract_columnar_metadata that uses a specific delimiter."""
 
@@ -285,7 +291,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
         if null_inference and num_rows >= ni_rows:
             add_final_aggregates(metadata, col_aliases, col_types, num_rows)
             return _extract_columnar_metadata(file_handle, delimiter, pass_fail=pass_fail,
-                                              collect_preamble=collect_preamble,
+                                              lda_preamble=lda_preamble,
                                               null_inference=False,
                                               nulls=inferred_nulls(metadata))
 
@@ -307,12 +313,12 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
     # we've parsed the whole table, now do null inference
     if null_inference:
         return _extract_columnar_metadata(file_handle, delimiter, pass_fail=pass_fail,
-                                          collect_preamble=collect_preamble,
+                                          lda_preamble=lda_preamble,
                                           null_inference=False,
                                           nulls=inferred_nulls(metadata))
 
     # extract free-text preamble, which may contain headers
-    if collect_preamble and not fully_parsed:
+    if lda_preamble and not fully_parsed:
         # number of characters in file before last un-parse-able row
         file_handle.seek(reverse_reader.prev_position)
         remaining_chars = file_handle.tell() - 1
@@ -328,7 +334,12 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, collect_
             preamble += file_handle.read(1)
         # add preamble to the metadata
         if len(preamble) > 0:
-            metadata["preamble"] = preamble
+            try:
+                # convert the preamble string to a file handle to give to the topic extraction method
+                preamble_file = StringIO.StringIO(preamble)
+                metadata.update(extract_topic(preamble_file, pass_fail=pass_fail))
+            except (ExtractionPassed, ExtractionFailed):
+                pass
 
     # remove empty string aggregates that were placeholders in null inference
     for key in metadata["columns"].keys():
@@ -562,6 +573,9 @@ def extract_topic(file_handle, pass_fail=False):
     doc_bow = dictionary.doc2bow(doc)
 
     topics = lda_model[doc_bow]
+    # normalize topics to sum to 1, as they are usually just short
+    sum_topics = sum([topic[1] for topic in topics])
+    topics = [[topic_num, prob/sum_topics] for [topic_num, prob] in topics]
     # if no words are common to the training corpus, topics will be an empty list
     if not topics:
         raise ExtractionFailed

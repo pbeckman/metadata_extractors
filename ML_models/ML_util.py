@@ -70,14 +70,22 @@ def get_best_params(model, params, X, y):
     return model.best_params_
 
 
-def cross_validation(model, X, y, splits=1000, decision_threshold=None):
+def print_performance(all_y_test, all_y_pred, avg_method='macro'):
+    print "accuracy: {}\nprecision: {}\nrecall: {}".format(
+        accuracy_score(all_y_test, all_y_pred),
+        precision_score(all_y_test, all_y_pred, average=avg_method),
+        recall_score(all_y_test, all_y_pred, average=avg_method)
+    )
+
+
+def cross_validation(model, X, y, splits=1000, certainty_threshold=None):
     """Runs cross-validation on a test set to find accuracy of model and prints results.
 
         :param model: (sklearn.model) model to test
         :param X: (np.array) data matrix
         :param y: (np.array) true value column vector
         :param splits: (int) number of times to perform cross-validation
-        :param decision_threshold: (float | None) if the model has a decision function
+        :param certainty_threshold: (float | None) if the model has a decision function
         such as SVC's distance to separating hyperplane, this will print statistics for
         only those observations within the threshold
         :returns: (list, np.array) null values and column vector with index of null in list"""
@@ -94,43 +102,32 @@ def cross_validation(model, X, y, splits=1000, decision_threshold=None):
 
         # Train the model
         model.fit(X_train, y_train)
-        y_pred = model.predict(X_test).reshape(-1, 1)
+        y_proba = model.predict_proba(X_test)
+        y_decision = np.asarray([max(row) for row in y_proba]).reshape(-1, 1)
+        y_pred = np.asarray([model.classes_[row.argmax()] for row in y_proba]).reshape(-1, 1)
 
         all_y_test = np.concatenate((all_y_test, y_test))
         all_y_pred = np.concatenate((all_y_pred, y_pred))
+        all_y_decision = np.concatenate((all_y_decision, y_decision))
 
-        if decision_threshold is not None:
-            y_decision = model.decision_function(X_test)
-            y_decision = np.asarray([[max([abs(i) for i in row])] for row in y_decision])
-            all_y_decision = np.concatenate((all_y_decision, y_decision))
+    print_performance(all_y_test, all_y_pred, avg_method='macro')
 
-    print "accuracy: {}\nprecision: {}\nrecall: {}".format(
-        accuracy_score(all_y_test, all_y_pred),
-        precision_score(all_y_test, all_y_pred, average='macro'),
-        recall_score(all_y_test, all_y_pred, average='macro')
-    )
+    if certainty_threshold is not None:
+        print "---------------------------------------"
+        print "Within certainty threshold of {}".format(certainty_threshold)
+        print "---------------------------------------"
 
-    if decision_threshold is not None:
-        print """
-        ----------------------------
-        Within decision threshold of {}
-        ----------------------------
-        """.format(decision_threshold)
-
-        print "decision function min: {}, max: {}".format(min(all_y_decision)[0], max(all_y_decision)[0])
+        print "certainty min: {}, max: {}".format(min(all_y_decision)[0], max(all_y_decision)[0])
         outside_threshold = [i for i in range(0, all_y_decision.shape[0])
-                             if all_y_decision[i][0] < decision_threshold]
+                             if all_y_decision[i][0] < certainty_threshold]
         # print outside_threshold
         all_y_test = np.delete(all_y_test, outside_threshold)
         all_y_pred = np.delete(all_y_pred, outside_threshold)
         print "number of samples within threshold: {} out of {}".format(all_y_pred.shape[0],
                                                                         all_y_pred.shape[0] + len(outside_threshold))
 
-        print "accuracy: {}\nprecision: {}\nrecall: {}".format(
-            accuracy_score(all_y_test, all_y_pred),
-            precision_score(all_y_test, all_y_pred, average='macro'),
-            recall_score(all_y_test, all_y_pred, average='macro')
-        )
+        if all_y_pred.shape[0] > 0:
+            print_performance(all_y_test, all_y_pred, avg_method='macro')
 
 
 def train_and_save(model, X, y, file_name):
