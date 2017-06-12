@@ -60,7 +60,10 @@ def test_topic_mixture(graph_file_name, metadata_file_name):
 # make_test_col_csv()
 # test_metadata_extraction()
 # test_topic_mixture("test_graph.pkl", "test_metadata.json")
-refine_metadata("test_metadata.json", "new_test_metadata.json", "test_graph.pkl",
-                lda_preamble=True, null_inference=False)
+# refine_metadata("test_metadata.json", "new_test_metadata.json", "test_graph.pkl",
+#                 lda_preamble=True, null_inference=False)
+
+with open("pub8.pkl", "wb") as gf:
+    make_filesystem_graph("/home/tskluzac/pub8", graph_file=gf)
 
 
