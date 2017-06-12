@@ -32,7 +32,7 @@ class ExtractionPassed(Exception):
     """Indicator to throw when extractor passes for fast file classification"""
 
 
-def extract_metadata(file_name, path, pass_fail=False):
+def extract_metadata(file_name, path, pass_fail=False, lda_preamble=False, null_inference=False):
     """Create metadata JSON from file.
 
         :param file_name: (str) file name
@@ -179,31 +179,32 @@ class NumpyDecoder(json.JSONEncoder):
             return super(NumpyDecoder, self).default(obj)
 
 
-def extract_columnar_metadata(file_handle, pass_fail=False, lda_preamble=False, null_inference=False):
+def extract_columnar_metadata(file_handle, pass_fail=False, lda_preamble=False, null_inference=False, nulls=None):
     """Get metadata from column-formatted file.
 
             :param file_handle: (file) open file
             :param pass_fail: (bool) whether to exit after ascertaining file class
             :param lda_preamble: (bool) whether to collect the free-text preamble at the start of the file
             :param null_inference: (bool) whether to use the null inference model to remove nulls
+            :param nulls: (list(int)) list of null indices
             :returns: (dict) ascertained metadata
             :raises: (ExtractionFailed) if the file cannot be read as a columnar file"""
 
     try:
         return _extract_columnar_metadata(
             file_handle, ",",
-            pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference
+            pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference, nulls=nulls
         )
     except ExtractionFailed:
         try:
             return _extract_columnar_metadata(
                 file_handle, "\t",
-                pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference
+                pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference, nulls=nulls
             )
         except ExtractionFailed:
             return _extract_columnar_metadata(
                 file_handle, " ",
-                pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference
+                pass_fail=pass_fail, lda_preamble=lda_preamble, null_inference=null_inference, nulls=nulls
             )
 
 
@@ -219,7 +220,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, lda_prea
     # minimum number of rows to be considered an extractable table
     min_rows = 5
     # number of rows used to generate aggregates for the null inference model
-    ni_rows = 100
+    ni_rows = 100000
     # number of rows to skip at the end of the file before reading
     end_rows = 5
     # size of extracted free-text preamble in characters
@@ -272,7 +273,7 @@ def _extract_columnar_metadata(file_handle, delimiter, pass_fail=False, lda_prea
             # we do this because the most accurate headers usually appear first in the file after the preamble
             if len(set(row)) == len(row):
                 for i in range(0, len(row)):
-                    metadata["columns"][row[i]] = metadata["columns"].pop(col_aliases[i])
+                    metadata["columns"][row[i].lower()] = metadata["columns"].pop(col_aliases[i])
                 col_aliases = [header.lower() for header in row]
 
             for header in row:
@@ -411,13 +412,9 @@ def add_final_aggregates(metadata, col_aliases, col_types, num_rows):
         :param col_types: (list("num" | "str")) list of header types
         :param num_rows: (int) number of value rows"""
 
-    # calculate averages for numerical columns if aggregates were taken,
-    # (which only happens when there is a single row of headers)
+    # calculate averages for numerical columns
     for i in range(0, len(col_aliases)):
         col_alias = col_aliases[i]
-
-        # if metadata["columns"][col_alias] == {}:
-        #     metadata["columns"].pop(col_alias)
 
         if col_types[i] == "num":
             metadata["columns"][col_alias]["max"] = [val for val in metadata["columns"][col_alias]["max"]
@@ -541,9 +538,9 @@ def ni_data(metadata):
             col_agg["max"][0] - col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else 0,
             col_agg["max"][1] if "max" in col_agg.keys() and len(col_agg["max"]) > 1 else 0,
             col_agg["max"][1] - col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else 0,
-            col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else 0,
+            col_agg["max"][2] if "max" in col_agg.keys() and len(col_agg["max"]) > 2 else 0  #,
 
-            col_agg["avg"] if "avg" in col_agg.keys() else 0,
+            # col_agg["avg"] if "avg" in col_agg.keys() else 0,
         ]
         for col_alias, col_agg in metadata["columns"].iteritems()]
 

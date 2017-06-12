@@ -88,7 +88,7 @@ if __name__ == "__main__":
     print "reading training data"
     data = pd.read_csv('null_training_data.csv')
 
-    X = data.iloc[:, 3:-2].values
+    X = data.iloc[:, 3:-1].values
     y = data.iloc[:, -1:].values
 
     print "cleaning training data"
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     # print get_best_params(model, params, X, y)
 
     print "cross-validating model"
-    cross_validation(model, X, y, splits=1000)
+    cross_validation(model, X, y, splits=100)
 
     # print "training and saving model"
     # train_and_save(model, X, y, "ni_model.pkl")
