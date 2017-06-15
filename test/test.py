@@ -53,17 +53,28 @@ def test_topic_mixture(graph_file_name, metadata_file_name):
         print topic_mixture("test_files/no_headers.csv", metadata, G)
 
 
-# write_metadata("test_metadata.json", "test_file_list.txt",
-#                new_file_list=True, overwrite=True,
-#                pass_fail=False, lda_preamble=True, null_inference=False)
-# write_test_graph("test_graph.pkl")
+def write_test_metadata():
+    write_metadata("test_metadata.json", "test_file_list.txt",
+                   new_file_list=True, overwrite=True,
+                   pass_fail=False, lda_preamble=True, null_inference=False)
+
+
+def refine_test_metadata():
+    refine_metadata("test_metadata.json", "test_metadata-refined.json", "test_graph.pkl",
+                    lda_preamble=False, null_inference=False)
+
+
+def pipeline_test():
+    write_test_metadata()
+    write_test_graph("test_graph.pkl")
+    refine_test_metadata()
+
+pipeline_test()
+
 # make_test_col_csv()
 # test_metadata_extraction()
 # test_topic_mixture("test_graph.pkl", "test_metadata.json")
-# refine_metadata("test_metadata.json", "new_test_metadata.json", "test_graph.pkl",
-#                 lda_preamble=True, null_inference=False)
-
-with open("pub8.pkl", "wb") as gf:
-    make_filesystem_graph("/home/tskluzac/pub8", graph_file=gf)
+# refine_metadata("metadata_5-15.json", "metadata_5-15_refined.json", "pub8_graph.pkl",
+#                 lda_preamble=False, null_inference=False)
 
 
