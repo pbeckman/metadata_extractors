@@ -69,12 +69,12 @@ def pipeline_test():
     write_test_graph("test_graph.pkl")
     refine_test_metadata()
 
-pipeline_test()
+# pipeline_test()
 
 # make_test_col_csv()
 # test_metadata_extraction()
 # test_topic_mixture("test_graph.pkl", "test_metadata.json")
-# refine_metadata("metadata_5-15.json", "metadata_5-15_refined.json", "pub8_graph.pkl",
-#                 lda_preamble=False, null_inference=False)
+refine_metadata("metadata_5-15.json", "metadata_5-15_refined.json", "pub8_graph.pkl",
+                lda_preamble=False, null_inference=False)
 
 

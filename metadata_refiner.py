@@ -34,7 +34,7 @@ def refine_metadata(metadata_file_name, new_metadata_file_name, graph_file_name,
                 if not all([null == 0 for null in nulls]):
                     with open(full_path, "r") as file_handle:
                         new_columns = extract_columnar_metadata(file_handle, pass_fail=False, lda_preamble=lda_preamble,
-                                                                null_inference=null_inference)["columns"]
+                                                                null_inference=True)["columns"]
                     metadata[i]["columns"] = new_columns
 
         json.dump(metadata, new_metadata_file)
